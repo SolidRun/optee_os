@@ -157,6 +157,12 @@ static inline struct stmm_ctx *to_stmm_ctx(struct ts_ctx *ctx)
 #ifdef CFG_WITH_STMM_SP
 TEE_Result stmm_init_session(const TEE_UUID *uuid,
 			     struct tee_ta_session *s);
+
+TEE_Result alloc_and_map_io(struct stmm_ctx *spc, paddr_t pa,
+			    size_t sz, uint32_t prot, vaddr_t *va, \
+			    size_t pad_begin, size_t pad_end);
+
+TEE_Result alloc_plat_stmm_io(struct stmm_ctx *spc);
 #else
 static inline TEE_Result
 stmm_init_session(const TEE_UUID *uuid __unused,
