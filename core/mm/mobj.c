@@ -149,9 +149,13 @@ static struct mobj *mobj_phys_init(paddr_t pa, size_t size, uint32_t cattr,
 	}
 
 	/* Only SDP memory may not have a virtual address */
-	va = phys_to_virt(pa, area_type);
-	if (!va && battr != CORE_MEM_SDP_MEM)
+	if (area_type == MEM_AREA_IO_SEC || area_type == MEM_AREA_IO_NSEC)
+		va = phys_to_virt_io(pa);
+	else
+		va = phys_to_virt(pa, area_type);
+	if (!va && battr != CORE_MEM_SDP_MEM) {
 		return NULL;
+	}
 
 	moph = calloc(1, sizeof(*moph));
 	if (!moph)
@@ -178,7 +182,10 @@ struct mobj *mobj_phys_alloc(paddr_t pa, size_t size, uint32_t cattr,
 		area_type = MEM_AREA_TEE_RAM_RW_DATA;
 		break;
 	case CORE_MEM_TA_RAM:
-		area_type = MEM_AREA_TA_RAM;
+		if (cattr == TEE_MATTR_CACHE_NONCACHE)
+			area_type = MEM_AREA_IO_NSEC;
+		else
+			area_type = MEM_AREA_TA_RAM;
 		break;
 	case CORE_MEM_NSEC_SHM:
 		area_type = MEM_AREA_NSEC_SHM;

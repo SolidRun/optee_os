@@ -182,6 +182,40 @@ static TEE_Result alloc_and_map_sp_fobj(struct stmm_ctx *spc, size_t sz,
 	return TEE_SUCCESS;
 }
 
+TEE_Result alloc_and_map_io(struct stmm_ctx *spc, paddr_t pa,
+				  size_t sz, uint32_t prot, vaddr_t *va, \
+				  size_t pad_begin, size_t pad_end)
+{
+	struct mobj *mobj;
+	TEE_Result res = TEE_SUCCESS;
+
+	if (sz == 0)
+		return res;
+
+	sz = ROUNDUP(sz, SMALL_PAGE_SIZE);
+	mobj = mobj_phys_alloc(pa, sz, TEE_MATTR_CACHE_NONCACHE,
+			       CORE_MEM_TA_RAM);
+	if (!mobj) {
+		EMSG("failed to alloc size 0x%x at 0x%x\n", sz, pa);
+		return TEE_ERROR_OUT_OF_MEMORY;
+	}
+
+	res = vm_map_pad(&spc->uctx, va, sz, prot, 0, mobj, 0, pad_begin,
+			 pad_end, 0);
+	if (res)
+		mobj_put(mobj);
+
+	return res;
+}
+
+TEE_Result __weak alloc_plat_stmm_io(struct stmm_ctx *spc)
+{
+	TEE_Result res;
+	res = alloc_and_map_io(spc, 0, 0, 0, 0, 0, 0);
+
+	return res;
+}
+
 static void *zalloc(void *opaque __unused, unsigned int items,
 		    unsigned int size)
 {
@@ -247,6 +281,9 @@ static TEE_Result load_stmm(struct stmm_ctx *spc)
 	 */
 	if (res)
 		return res;
+
+	res = alloc_plat_stmm_io(spc);
+	assert (res == TEE_SUCCESS);
 
 	image_addr = sp_addr;
 	heap_addr = image_addr + uncompressed_size_roundup;
