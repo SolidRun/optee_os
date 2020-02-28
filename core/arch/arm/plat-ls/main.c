@@ -75,7 +75,7 @@ static struct pl011_data console_data;
 #else
 static struct ns16550_data console_data;
 #endif
-
+register_dynamic_shm(CFG_DRAM0_BASE, CFG_DRAM0_SIZE - CFG_TEE_OS_DRAM0_SIZE);
 register_phys_mem_pgdir(MEM_AREA_IO_NSEC, CONSOLE_UART_BASE,
 			CORE_MMU_PGDIR_SIZE);
 register_phys_mem_pgdir(MEM_AREA_IO_SEC, GIC_BASE, CORE_MMU_PGDIR_SIZE);
