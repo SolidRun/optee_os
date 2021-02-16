@@ -42,6 +42,7 @@
 #include <kernel/dt.h>
 #include <kernel/misc.h>
 #include <kernel/panic.h>
+#include <kernel/stmm_sp.h>
 #include <kernel/thread.h>
 #include <kernel/tz_ssvce_def.h>
 #include <libfdt.h>
@@ -245,4 +246,25 @@ TEE_Result tee_otp_get_hw_unique_key(struct tee_hw_unique_key *hwkey)
 
 	return res;
 }
+
+#ifdef CFG_WITH_STMM_SP
+TEE_Result alloc_plat_stmm_io(struct stmm_ctx *spc)
+{
+	TEE_Result res;
+	vaddr_t i2c5_va = 0;
+
+	/* Map I2c5 */
+	res = alloc_and_map_io(spc, 0x02040000, 0x00010000,
+				TEE_MATTR_URW | TEE_MATTR_PRW,
+				&i2c5_va, 0, 0);
+	if (res) {
+		EMSG("failed to alloc_and_map i2c5");
+		return res;
+	}
+
+	DMSG("i2c5 va=%#"PRIxVA, i2c5_va);
+
+	return res;
+}
+#endif
 #endif
