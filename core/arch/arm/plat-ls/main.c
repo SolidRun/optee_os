@@ -42,6 +42,7 @@
 #include <kernel/dt.h>
 #include <kernel/misc.h>
 #include <kernel/panic.h>
+#include <kernel/stmm_sp.h>
 #include <kernel/thread.h>
 #include <kernel/tz_ssvce_def.h>
 #include <libfdt.h>
@@ -57,8 +58,9 @@ static struct pl011_data console_data;
 static struct ns16550_data console_data;
 #endif
 
-register_phys_mem_pgdir(MEM_AREA_IO_NSEC, CONSOLE_UART_BASE,
-			CORE_MMU_PGDIR_SIZE);
+register_phys_mem_pgdir(MEM_AREA_IO_NSEC, 0x01e00000, CORE_MMU_PGDIR_SIZE);
+register_phys_mem_pgdir(MEM_AREA_IO_NSEC, CONSOLE_UART_BASE, CORE_MMU_PGDIR_SIZE);
+
 #if !defined(PLATFORM_FLAVOR_lx2160aqds) && !defined(PLATFORM_FLAVOR_lx2160ardb)
 register_phys_mem_pgdir(MEM_AREA_IO_SEC, GIC_BASE, CORE_MMU_PGDIR_SIZE);
 #endif
@@ -165,6 +167,51 @@ static TEE_Result get_gic_base_addr_from_dt(paddr_t *gic_addr)
 	*gic_addr = paddr;
 	return TEE_SUCCESS;
 }
+
+#ifdef CFG_WITH_STMM_SP
+TEE_Result alloc_plat_stmm_io(struct stmm_ctx *spc)
+{
+	TEE_Result res;
+	vaddr_t dcfg_va = 0;
+	vaddr_t i2c5_va = 0;
+	vaddr_t uart0_va = 0;
+
+	/* Map Dcfg */
+	res = alloc_and_map_io(spc, 0x01e00000, 0x00001000,
+				TEE_MATTR_URW | TEE_MATTR_PRW,
+				&dcfg_va, 0, 0);
+	if (res) {
+		EMSG("failed to alloc_and_map dcfg");
+		return res;
+	}
+
+	DMSG("dcfg va=%#"PRIxVA, dcfg_va);
+
+	/* Map I2c5 */
+	res = alloc_and_map_io(spc, 0x02040000, 0x00001000,
+				TEE_MATTR_URW | TEE_MATTR_PRW,
+				&i2c5_va, 0, 0);
+	if (res) {
+		EMSG("failed to alloc_and_map i2c5");
+		return res;
+	}
+
+	DMSG("i2c5 va=%#"PRIxVA, i2c5_va);
+
+	/* Map UART0 */
+	res = alloc_and_map_io(spc, 0x021c0000, 0x00001000,
+				TEE_MATTR_URW | TEE_MATTR_PRW,
+				&uart0_va, 0, 0);
+	if (res) {
+		EMSG("failed to alloc_and_map uart0");
+		return res;
+	}
+
+	DMSG("iuart0 va=%#"PRIxVA, uart0_va);
+
+	return res;
+}
+#endif
 #endif
 
 void main_init_gic(void)
